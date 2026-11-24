@@ -1,8 +1,8 @@
 # Cào tên ở quán trà
 
-Nhập họ tên, mỗi người một dòng, rồi chọn từ 1 đến 3 thẻ mỗi lượt. Dùng chuột hoặc ngón tay cào lớp bạc trên phiếu. Nút **Mở phiếu** hỗ trợ chơi bằng bàn phím.
+Đặt số tên muốn chọn, nhập họ tên mỗi người một dòng, rồi chọn từ 1 đến 3 thẻ mỗi lượt. Ván kết thúc khi mở hết phiếu của lượt đã chọn đủ tên. Dùng chuột hoặc ngón tay cào lớp bạc trên phiếu. Nút **Mở phiếu** hỗ trợ chơi bằng bàn phím.
 
-Khi còn người chưa được gọi, mỗi phiếu có 65% cơ hội hiện tên một người trong danh sách. Các phiếu còn lại hiện tên ngoài danh sách. Mỗi tên đúng chỉ được gọi một lần trong ván. Nếu có người trùng họ tên, hãy thêm biệt danh để phân biệt. Danh sách được lưu trong trình duyệt.
+Khi chưa đủ số tên cần chọn, mỗi phiếu có 65% cơ hội hiện tên một người trong danh sách. Các phiếu còn lại hiện tên ngoài danh sách. Mỗi tên đúng chỉ được gọi một lần trong ván. Nếu có người trùng họ tên, hãy thêm biệt danh để phân biệt. Danh sách được lưu trong trình duyệt.
 
 ## Chạy trong môi trường phát triển
 

@@ -2,6 +2,8 @@
 
 const setup = document.querySelector('#setup');
 const names = document.querySelector('#names');
+const target = document.querySelector('#target');
+const progress = document.querySelector('#progress');
 const count = document.querySelector('#count');
 const play = document.querySelector('#play');
 const cards = document.querySelector('#cards');
@@ -14,6 +16,7 @@ let allNames = [];
 let remaining = [];
 let unopened = 0;
 let round = 0;
+let goal = 1;
 
 try {
   names.value = localStorage.getItem(storageKey) || '';
@@ -46,7 +49,7 @@ function offListName() {
 }
 
 function draw() {
-  if (remaining.length && Math.random() < 0.65) {
+  if (allNames.length - remaining.length < goal && Math.random() < 0.65) {
     const index = Math.floor(Math.random() * remaining.length);
     return { name: remaining.splice(index, 1)[0], hit: true };
   }
@@ -92,9 +95,11 @@ function createTicket(index, outcome) {
 
     unopened--;
     const complete = unopened === 0;
-    const finished = complete && remaining.length === 0;
+    const selected = history.childElementCount;
+    progress.textContent = `Đã chọn ${selected}/${goal} tên`;
+    const finished = complete && selected === goal;
     next.disabled = !complete || finished;
-    const summary = finished ? ' Đã gọi hết danh sách.' : '';
+    const summary = finished ? ' Đã chọn đủ số tên.' : '';
     status.textContent = `Phiếu ${index + 1}: ${result.textContent}.${summary}`;
     const focusTarget = cards.querySelector('button:not(:disabled)') || (finished ? document.querySelector('#edit') : next);
     focusTarget.focus();
@@ -181,6 +186,13 @@ setup.addEventListener('submit', event => {
     return;
   }
 
+  goal = Number(target.value);
+  if (goal > allNames.length) {
+    target.setCustomValidity(`Danh sách có ${allNames.length} tên khác nhau. Hãy giảm số tên muốn chọn hoặc thêm người chơi.`);
+    target.reportValidity();
+    return;
+  }
+
   names.value = allNames.join('\n');
   try {
     localStorage.setItem(storageKey, names.value);
@@ -191,12 +203,17 @@ setup.addEventListener('submit', event => {
   remaining = [...allNames];
   round = 0;
   history.replaceChildren();
+  progress.textContent = `Đã chọn 0/${goal} tên`;
   setup.hidden = true;
   play.hidden = false;
   startRound();
 });
 
-names.addEventListener('input', () => names.setCustomValidity(''));
+names.addEventListener('input', () => {
+  names.setCustomValidity('');
+  target.setCustomValidity('');
+});
+target.addEventListener('input', () => target.setCustomValidity(''));
 next.addEventListener('click', startRound);
 document.querySelector('#edit').addEventListener('click', () => {
   play.hidden = true;
