@@ -1,120 +1,205 @@
 'use strict';
 
-const storageKey = 'den-luot-ai.players';
-const form = document.querySelector('#player-form');
+const setup = document.querySelector('#setup');
 const names = document.querySelector('#names');
+const count = document.querySelector('#count');
+const play = document.querySelector('#play');
 const cards = document.querySelector('#cards');
-const progress = document.querySelector('#progress');
-const result = document.querySelector('#result');
-const reset = document.querySelector('#reset');
+const status = document.querySelector('#status');
+const next = document.querySelector('#next');
 const history = document.querySelector('#history');
-const historyEmpty = document.querySelector('#history-empty');
+const storageKey = 'den-luot-ai.players';
 
-let players = [];
+let allNames = [];
 let remaining = [];
+let unopened = 0;
+let round = 0;
 
-function readSavedNames() {
-  try {
-    return localStorage.getItem(storageKey) || '';
-  } catch {
-    return '';
+try {
+  names.value = localStorage.getItem(storageKey) || '';
+} catch {
+  // A blocked storage area does not prevent play.
+}
+
+function normalize(name) {
+  return name.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi');
+}
+
+function parseNames(text) {
+  const unique = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const name = line.trim().replace(/\s+/g, ' ');
+    if (name && !unique.has(normalize(name))) unique.set(normalize(name), name);
   }
+  return [...unique.values()];
 }
 
-function saveNames(value) {
-  try {
-    localStorage.setItem(storageKey, value);
-  } catch {
-    // The game still works when storage is unavailable.
+function offListName() {
+  const occupied = new Set(allNames.map(normalize));
+  const decoys = ['Đỗ Thanh Mai', 'Lâm Hoàng Phúc', 'Vũ Minh Châu', 'Bùi Khánh Linh'];
+  const available = decoys.filter(name => !occupied.has(normalize(name)));
+  if (available.length) return available[Math.floor(Math.random() * available.length)];
+
+  let number = 1;
+  while (occupied.has(normalize(`Khách quán trà ${number}`))) number++;
+  return `Khách quán trà ${number}`;
+}
+
+function draw() {
+  if (remaining.length && Math.random() < 0.65) {
+    const index = Math.floor(Math.random() * remaining.length);
+    return { name: remaining.splice(index, 1)[0], hit: true };
   }
+  return { name: offListName(), hit: false };
 }
 
-function updateProgress() {
-  progress.textContent = players.length
-    ? `Còn ${remaining.length}/${players.length} người chơi`
-    : 'Chưa có người chơi';
-}
+function createTicket(index, outcome) {
+  const ticket = document.createElement('article');
+  ticket.className = 'ticket';
+  const title = document.createElement('p');
+  title.className = 'ticket-title';
+  title.textContent = `Phiếu ${index + 1}`;
 
-function reveal(card) {
-  if (card.disabled || remaining.length === 0) return;
+  const scratch = document.createElement('div');
+  scratch.className = 'scratch';
+  const result = document.createElement('div');
+  result.className = 'ticket-result';
+  result.textContent = outcome.name;
+  result.setAttribute('aria-hidden', 'true');
 
-  const index = Math.floor(Math.random() * remaining.length);
-  const [player] = remaining.splice(index, 1);
-  card.textContent = player;
-  card.disabled = true;
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 96;
+  canvas.setAttribute('aria-hidden', 'true');
 
-  const entry = document.createElement('li');
-  entry.textContent = player;
-  history.append(entry);
-  historyEmpty.hidden = true;
-  updateProgress();
-  result.textContent = remaining.length
-    ? `Đến lượt ${player}!`
-    : `Đến lượt ${player}! Tất cả người chơi đã được gọi.`;
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'open-ticket';
+  open.textContent = `Mở phiếu ${index + 1}`;
 
-  (cards.querySelector('button:not(:disabled)') || reset).focus();
+  function reveal() {
+    canvas.remove();
+    open.disabled = true;
+    result.removeAttribute('aria-hidden');
+    result.textContent = outcome.hit
+      ? `${outcome.name} · Đúng tên!`
+      : `${outcome.name} · Ngoài danh sách`;
+    if (outcome.hit) {
+      const item = document.createElement('li');
+      item.textContent = outcome.name;
+      history.append(item);
+    }
+
+    unopened--;
+    const complete = unopened === 0;
+    const finished = complete && remaining.length === 0;
+    next.disabled = !complete || finished;
+    const summary = finished ? ' Đã gọi hết danh sách.' : '';
+    status.textContent = `Phiếu ${index + 1}: ${result.textContent}.${summary}`;
+    const focusTarget = cards.querySelector('button:not(:disabled)') || (finished ? document.querySelector('#edit') : next);
+    focusTarget.focus();
+  }
+
+  open.addEventListener('click', reveal);
+  scratch.append(result, canvas);
+  ticket.append(title, scratch, open);
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) {
+    canvas.remove();
+    result.textContent = '';
+    return ticket;
+  }
+
+  const foil = ctx.createLinearGradient(0, 0, 320, 96);
+  foil.addColorStop(0, '#c7cfcb');
+  foil.addColorStop(0.5, '#edf2ee');
+  foil.addColorStop(1, '#a9b7b0');
+  ctx.fillStyle = foil;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#23483b';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 18px system-ui';
+  ctx.fillText('CÀO Ở ĐÂY', 160, 48);
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 25;
+  let pointer = null;
+  let last;
+
+  function erase(event) {
+    const bounds = canvas.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) * canvas.width / bounds.width;
+    const y = (event.clientY - bounds.top) * canvas.height / bounds.height;
+    const from = last || { x: x + 0.1, y };
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    last = { x, y };
+
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let cleared = 0;
+    for (let alpha = 3; alpha < data.length; alpha += 32) {
+      if (data[alpha] === 0) cleared++;
+    }
+    if (cleared >= canvas.width * canvas.height / 8 * 0.36) reveal();
+  }
+
+  canvas.addEventListener('pointerdown', event => {
+    if (pointer !== null || event.button !== 0) return;
+    pointer = event.pointerId;
+    canvas.setPointerCapture(pointer);
+    erase(event);
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (pointer === event.pointerId) erase(event);
+  });
+  canvas.addEventListener('lostpointercapture', () => {
+    pointer = null;
+    last = null;
+  });
+  return ticket;
 }
 
 function startRound() {
-  remaining = [...players];
-  cards.replaceChildren();
-  history.replaceChildren();
-  historyEmpty.hidden = false;
-  reset.disabled = players.length === 0;
-  updateProgress();
-
-  result.textContent = players.length
-    ? 'Chọn một thẻ để bắt đầu.'
-    : 'Nhập danh sách người chơi để bắt đầu.';
-
-  players.forEach((_, index) => {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'card';
-    card.setAttribute('aria-label', `Lật thẻ ${index + 1}`);
-
-    const symbol = document.createElement('span');
-    symbol.className = 'card-symbol';
-    symbol.textContent = '✦';
-    symbol.setAttribute('aria-hidden', 'true');
-
-    const number = document.createElement('span');
-    number.className = 'card-number';
-    number.textContent = `Thẻ ${index + 1}`;
-    card.append(symbol, number);
-    card.addEventListener('click', () => {
-      card.removeAttribute('aria-label');
-      reveal(card);
-    });
-    cards.append(card);
-  });
+  round++;
+  unopened = Number(count.value);
+  cards.replaceChildren(...Array.from({ length: unopened }, (_, index) => createTicket(index, draw())));
+  status.textContent = `Lượt ${round}. Cào hết phiếu để tiếp tục.`;
+  next.disabled = true;
+  cards.querySelector('button').focus();
 }
 
-function parseNames(value) {
-  return value.split(/\r?\n/).map(name => name.trim()).filter(Boolean);
-}
-
-form.addEventListener('submit', event => {
+setup.addEventListener('submit', event => {
   event.preventDefault();
-  const list = parseNames(names.value);
-  if (!list.length) {
+  allNames = parseNames(names.value);
+  if (!allNames.length) {
     names.setCustomValidity('Hãy nhập ít nhất một tên.');
     names.reportValidity();
     return;
   }
-  players = list;
-  names.value = list.join('\n');
-  saveNames(names.value);
+
+  names.value = allNames.join('\n');
+  try {
+    localStorage.setItem(storageKey, names.value);
+  } catch {
+    // A blocked storage area does not prevent play.
+  }
+
+  remaining = [...allNames];
+  round = 0;
+  history.replaceChildren();
+  setup.hidden = true;
+  play.hidden = false;
   startRound();
-  cards.firstElementChild.focus();
 });
 
 names.addEventListener('input', () => names.setCustomValidity(''));
-reset.addEventListener('click', () => {
-  startRound();
-  cards.firstElementChild?.focus();
+next.addEventListener('click', startRound);
+document.querySelector('#edit').addEventListener('click', () => {
+  play.hidden = true;
+  setup.hidden = false;
+  names.focus();
 });
-
-names.value = readSavedNames();
-players = parseNames(names.value);
-startRound();

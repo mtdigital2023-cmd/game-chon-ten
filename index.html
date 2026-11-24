@@ -3,40 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f4ed">
-  <title>Đến lượt ai? · Trò chơi gọi tên</title>
+  <meta name="theme-color" content="#183c35">
+  <title>Cào tên ở quán trà</title>
   <link rel="stylesheet" href="/style.css">
   <script defer src="/app.js"></script>
 </head>
 <body>
-  <main>
-    <header>
-      <span class="mark" aria-hidden="true">✦</span>
-      <h1>Đến lượt ai?</h1>
-      <p>Chọn một thẻ để gọi tên bạn tiếp theo.</p>
+  <main class="layout">
+    <header class="scene">
+      <div class="scene-title">
+        <p class="eyebrow">Trò chơi gọi tên</p>
+        <h1>Cào tên<br>ở quán trà</h1>
+      </div>
     </header>
-    <div class="layout">
-      <section class="game" aria-labelledby="game-title">
-        <div class="toolbar">
-          <h2 id="game-title">Sân chơi</h2>
-          <button id="reset" type="button" class="secondary">Chơi lại</button>
+
+    <section class="panel" aria-labelledby="panel-title">
+      <h2 id="panel-title">Mời bạn một lượt</h2>
+      <form id="setup">
+        <label for="names">Danh sách người chơi</label>
+        <p class="hint" id="names-hint">Nhập họ tên, mỗi người một dòng.</p>
+        <textarea id="names" rows="5" placeholder="Nguyễn Minh Anh&#10;Trần Gia Huy&#10;Lê Bảo Ngọc" aria-describedby="names-hint" required></textarea>
+        <label for="count">Số thẻ mỗi lượt</label>
+        <select id="count">
+          <option value="1">1 thẻ</option>
+          <option value="2">2 thẻ</option>
+          <option value="3">3 thẻ</option>
+        </select>
+        <button class="primary" type="submit">Bắt đầu</button>
+      </form>
+
+      <div id="play" hidden>
+        <p class="hint" id="instructions">Rê chuột hoặc vuốt lên ô bạc để cào. Tên trùng với danh sách mới được gọi.</p>
+        <div id="cards" aria-describedby="instructions"></div>
+        <p id="status" role="status"></p>
+        <div class="actions">
+          <button class="primary" id="next" type="button" disabled>Lượt tiếp theo</button>
+          <button id="edit" type="button">Sửa danh sách</button>
         </div>
-        <p id="progress" role="status">Chưa có người chơi</p>
-        <div id="cards" class="cards" aria-label="Các thẻ gọi tên"></div>
-        <p id="result" class="result" role="status" aria-atomic="true"></p>
-      </section>
-      <section class="players" aria-labelledby="players-title">
-        <h2 id="players-title">Người chơi</h2>
-        <form id="player-form">
-          <label for="names">Mỗi tên trên một dòng</label>
-          <textarea id="names" rows="8" placeholder="Minh Anh&#10;Bảo Ngọc&#10;Gia Huy" required></textarea>
-          <button type="submit" class="primary">Dùng danh sách này</button>
-        </form>
         <h3>Đã được gọi</h3>
-        <p id="history-empty">Chưa có ai được gọi.</p>
         <ol id="history"></ol>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
 </body>
 </html>

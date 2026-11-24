@@ -1,6 +1,8 @@
-# Đến lượt ai?
+# Cào tên ở quán trà
 
-Trò chơi gọi tên ngẫu nhiên bằng cách lật thẻ. Nhập mỗi người chơi trên một dòng. Trong một vòng, mỗi dòng được gọi đúng một lần. Nếu hai người trùng tên, hãy thêm họ hoặc biệt danh để dễ phân biệt. Trình duyệt lưu danh sách trên thiết bị đang dùng.
+Nhập họ tên, mỗi người một dòng, rồi chọn từ 1 đến 3 thẻ mỗi lượt. Dùng chuột hoặc ngón tay cào lớp bạc trên phiếu. Nút **Mở phiếu** hỗ trợ chơi bằng bàn phím.
+
+Khi còn người chưa được gọi, mỗi phiếu có 65% cơ hội hiện tên một người trong danh sách. Các phiếu còn lại hiện tên ngoài danh sách. Mỗi tên đúng chỉ được gọi một lần trong ván. Nếu có người trùng họ tên, hãy thêm biệt danh để phân biệt. Danh sách được lưu trong trình duyệt.
 
 ## Chạy trong môi trường phát triển
 
