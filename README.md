@@ -6,7 +6,7 @@ Khi chưa đủ số tên cần chọn, mỗi phiếu có 65% cơ hội hiện t
 
 ## Chạy trong môi trường phát triển
 
-Từ thư mục gốc, chạy `python3 -m http.server 8080 --bind 0.0.0.0`, rồi mở trang trên cổng 8080. Dự án dùng HTML, CSS và JavaScript thuần.
+Dùng Node.js 24. Từ thư mục gốc chạy `npm ci`, sau đó `npm run dev` và mở cổng 3000. Tạo bản production bằng `npm run build`. Dockerfile đóng gói Next.js standalone và chạy trên cổng 8080.
 
 ## Triển khai trên Coolify
 
