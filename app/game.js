@@ -22,8 +22,8 @@ function offListName(allNames) {
   return `Khách quán trà ${number}`;
 }
 
-export function drawTicket(roster, remaining) {
-  if (Math.random() < 0.65) {
+export function drawTicket(roster, remaining, missesLeft) {
+  if (missesLeft === 0) {
     const index = Math.floor(Math.random() * remaining.length);
     return { name: remaining[index], hit: true };
   }

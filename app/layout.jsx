@@ -1,3 +1,4 @@
+import '@fontsource-variable/baloo-2';
 import './globals.css';
 import './taste-motion.css';
 
