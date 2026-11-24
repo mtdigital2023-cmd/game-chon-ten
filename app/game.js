@@ -22,20 +22,11 @@ function offListName(allNames) {
   return `Khách quán trà ${number}`;
 }
 
-function draw(allNames, remaining, goal) {
-  if (allNames.length - remaining.length < goal && Math.random() < 0.65) {
+export function drawTicket(roster, remaining) {
+  if (Math.random() < 0.65) {
     const index = Math.floor(Math.random() * remaining.length);
-    return { name: remaining.splice(index, 1)[0], hit: true };
+    return { name: remaining[index], hit: true };
   }
-  return { name: offListName(allNames), hit: false };
-}
 
-
-export function createRound(allNames, pool, goal, count) {
-  const remaining = [...pool];
-  const tickets = Array.from({ length: count }, () => ({
-    ...draw(allNames, remaining, goal),
-    open: false,
-  }));
-  return { remaining, tickets };
+  return { name: offListName(roster), hit: false };
 }
