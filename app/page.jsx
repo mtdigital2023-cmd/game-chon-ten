@@ -18,12 +18,6 @@ const phaseText = {
   scratch: 'đang cào lớp bạc.',
 };
 
-const serviceLinks = [
-  { label: 'Game đua vịt', url: 'https://duavit.mtdigital.vn/' },
-  { label: 'BNI Podcast & BNI Power of One tiếng Việt', url: 'https://bnipodcast.mtdigital.vn/' },
-  { label: 'Phần mềm chạy nhạc sự kiện', url: 'https://chaynhac.mtdigital.vn/' },
-];
-
 function Welcome() {
   return (
     <header className="scene">
@@ -31,13 +25,6 @@ function Welcome() {
       <div className="scene-title">
         <p className="eyebrow">Trò chơi gọi tên</p>
         <h1>Cào tên<br /> ở quán trà</h1>
-        <nav className="service-links" aria-label="Ứng dụng khác của MT Digital">
-          {serviceLinks.map(({ label, url }) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-              {label}<span aria-hidden="true" />
-            </a>
-          ))}
-        </nav>
       </div>
     </header>
   );
@@ -329,7 +316,7 @@ export default function Game() {
   }
 
   return (
-    <main ref={stage} className={`layout hero ${game || managing ? 'game-layout' : 'setup-layout'}`} data-enter data-phase={phase || (managing ? 'manager' : 'setup')} data-paused={paused}>
+    <main ref={stage} className={`layout hero ${game || managing ? 'game-layout' : 'setup-layout'}${playing ? ' film-layout' : ''}`} data-enter data-phase={phase || (managing ? 'manager' : 'setup')} data-paused={paused}>
       <a className="skip" href="#panel-title">Đến phần chơi</a>
       <div className="scene-art" data-visual aria-hidden="true" />
       <div className="table-art" aria-hidden="true" />
