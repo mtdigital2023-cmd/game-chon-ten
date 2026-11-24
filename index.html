@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ed">
+  <title>Đến lượt ai? · Trò chơi gọi tên</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="mark" aria-hidden="true">✦</span>
+      <h1>Đến lượt ai?</h1>
+      <p>Chọn một thẻ để gọi tên bạn tiếp theo.</p>
+    </header>
+    <div class="layout">
+      <section class="game" aria-labelledby="game-title">
+        <div class="toolbar">
+          <h2 id="game-title">Sân chơi</h2>
+          <button id="reset" type="button" class="secondary">Chơi lại</button>
+        </div>
+        <p id="progress" role="status">Chưa có người chơi</p>
+        <div id="cards" class="cards" aria-label="Các thẻ gọi tên"></div>
+        <p id="result" class="result" role="status" aria-atomic="true"></p>
+      </section>
+      <section class="players" aria-labelledby="players-title">
+        <h2 id="players-title">Người chơi</h2>
+        <form id="player-form">
+          <label for="names">Mỗi tên trên một dòng</label>
+          <textarea id="names" rows="8" placeholder="Minh Anh&#10;Bảo Ngọc&#10;Gia Huy" required></textarea>
+          <button type="submit" class="primary">Dùng danh sách này</button>
+        </form>
+        <h3>Đã được gọi</h3>
+        <p id="history-empty">Chưa có ai được gọi.</p>
+        <ol id="history"></ol>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
