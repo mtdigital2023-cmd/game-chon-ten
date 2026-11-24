@@ -18,6 +18,31 @@ const phaseText = {
   scratch: 'đang cào lớp bạc.',
 };
 
+const serviceLinks = [
+  { label: 'Game đua vịt', url: 'https://duavit.mtdigital.vn/' },
+  { label: 'BNI Podcast & BNI Power of One tiếng Việt', url: 'https://bnipodcast.mtdigital.vn/' },
+  { label: 'Phần mềm chạy nhạc sự kiện', url: 'https://chaynhac.mtdigital.vn/' },
+];
+
+function Welcome() {
+  return (
+    <header className="scene">
+      <img className="welcome-brand" src="/mt-digital.webp" alt="MT Digital" width={560} height={107} />
+      <div className="scene-title">
+        <p className="eyebrow">Trò chơi gọi tên</p>
+        <h1>Cào tên<br /> ở quán trà</h1>
+        <nav className="service-links" aria-label="Ứng dụng khác của MT Digital">
+          {serviceLinks.map(({ label, url }) => (
+            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+              {label}<span aria-hidden="true" />
+            </a>
+          ))}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
 function TicketBrand() {
   return <span className="ticket-brand"><img src="/mt-digital.webp" alt="MT Digital" /></span>;
 }
@@ -77,7 +102,7 @@ function TearScene() {
   );
 }
 
-function ScratchTicket({ name, serial, paused, onFinish, onStroke }) {
+function ScratchTicket({ name, serial, style, paused, onFinish, onStroke }) {
   const canvas = useRef(null);
   const controller = useRef(null);
   const finish = useRef(onFinish);
@@ -87,10 +112,10 @@ function ScratchTicket({ name, serial, paused, onFinish, onStroke }) {
   }, [onFinish]);
 
   useLayoutEffect(() => {
-    const scratch = animateScratch(canvas.current, () => finish.current(), onStroke);
+    const scratch = animateScratch(canvas.current, style, () => finish.current(), onStroke);
     controller.current = scratch;
-    return () => scratch.stop();
-  }, [onStroke]);
+    return () => scratch.dispose();
+  }, [style, onStroke]);
 
   useEffect(() => {
     if (!paused) controller.current.start();
@@ -183,6 +208,8 @@ export default function Game() {
     setPaused(false);
     phaseClock.current = null;
     const missesLeft = Math.floor(Math.random() * 4);
+    const firstFriend = Math.floor(Math.random() * friends.length);
+    const serialStart = Math.floor(Math.random() * 100000);
     setGame({
       ...quantities,
       phase: 'intro',
@@ -190,9 +217,9 @@ export default function Game() {
       remaining: available,
       winners: [],
       missesLeft,
-      firstFriend: Math.floor(Math.random() * friends.length),
-      serialStart: Math.floor(Math.random() * 100000),
-      ticket: drawTicket(players, available, missesLeft),
+      firstFriend,
+      serialStart,
+      ticket: drawTicket(players, available, missesLeft, serialStart),
     });
   }
 
@@ -244,7 +271,7 @@ export default function Game() {
     const timer = setTimeout(() => {
       if (phase === 'result' && game.winners.length < game.goal) {
         const missesLeft = game.ticket.hit ? Math.floor(Math.random() * 4) : game.missesLeft - 1;
-        const ticket = drawTicket(roster, game.remaining, missesLeft);
+        const ticket = drawTicket(roster, game.remaining, missesLeft, game.serialStart + game.attempt + 1);
         setGame({ ...game, missesLeft, ticket, attempt: game.attempt + 1, phase: 'tear' });
       } else {
         if (phase === 'result') {
@@ -306,14 +333,7 @@ export default function Game() {
       <a className="skip" href="#panel-title">Đến phần chơi</a>
       <div className="scene-art" data-visual aria-hidden="true" />
       <div className="table-art" aria-hidden="true" />
-      {!game && !managing && (
-        <header className="scene">
-          <div className="scene-title">
-            <p className="eyebrow">Trò chơi gọi tên</p>
-            <h1>Cào tên<br /> ở quán trà</h1>
-          </div>
-        </header>
-      )}
+      {!game && !managing && <Welcome />}
 
       {!game && !managing && (
         <section className="panel" aria-labelledby="panel-title">
@@ -356,7 +376,7 @@ export default function Game() {
           </div>
           <div className="film-stage">
             {(phase === 'tear' || phase === 'place') && <TearScene key={game.attempt} />}
-            {phase === 'scratch' && <ScratchTicket name={game.ticket.name} serial={serial} paused={paused} onFinish={finishScratch} onStroke={sound.scratch} />}
+            {phase === 'scratch' && <ScratchTicket name={game.ticket.name} serial={serial} style={game.ticket.style} paused={paused} onFinish={finishScratch} onStroke={sound.scratch} />}
             {phase === 'result' && game.ticket.hit && (
               <div className="result-confetti" aria-hidden="true">
                 {Array.from({ length: 14 }, (_, index) => (

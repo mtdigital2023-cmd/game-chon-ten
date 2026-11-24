@@ -11,22 +11,35 @@ export function parseNames(text) {
   return [...unique.values()];
 }
 
-function offListName(allNames) {
-  const occupied = new Set(allNames.map(normalize));
-  const decoys = ['Đỗ Thanh Mai', 'Lâm Hoàng Phúc', 'Vũ Minh Châu', 'Bùi Khánh Linh'];
-  const available = decoys.filter(name => !occupied.has(normalize(name)));
-  if (available.length) return available[Math.floor(Math.random() * available.length)];
+const scratchStyles = ['given-first', 'surname-first', 'middle-first'];
+const surnames = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Vũ', 'Đỗ', 'Bùi', 'Trương'];
+const givenNames = ['An', 'Hà', 'Hân', 'Huy', 'Linh', 'Mai', 'Nam', 'Phúc', 'Tiền', 'Vy'];
 
-  let number = 1;
-  while (occupied.has(normalize(`Khách quán trà ${number}`))) number++;
-  return `Khách quán trà ${number}`;
+function pick(items) {
+  return items[Math.floor(Math.random() * items.length)];
 }
 
-export function drawTicket(roster, remaining, missesLeft) {
-  if (missesLeft === 0) {
-    const index = Math.floor(Math.random() * remaining.length);
-    return { name: remaining[index], hit: true };
-  }
+function offListName(roster, remaining, style) {
+  const occupied = new Set(roster.map(normalize));
+  const words = pick(remaining).split(' ');
+  const changeGiven = style === 'surname-first' && words.length > 1;
+  const alternatives = changeGiven
+    ? givenNames.map(name => [...words.slice(0, -1), name].join(' '))
+    : surnames.map(name => [name, ...words.slice(words.length === 1 ? 0 : 1)].join(' '));
+  const available = alternatives.filter(name => !occupied.has(normalize(name)));
+  if (available.length) return pick(available);
 
-  return { name: offListName(roster), hit: false };
+  // Retain the similar part even when the roster contains every common variant.
+  let alternative = alternatives[0];
+  do {
+    alternative = changeGiven ? `${alternative} Anh` : `Hà ${alternative}`;
+  } while (occupied.has(normalize(alternative)));
+  return alternative;
+}
+
+export function drawTicket(roster, remaining, missesLeft, serial) {
+  const style = scratchStyles[serial % scratchStyles.length];
+  if (missesLeft === 0) return { name: pick(remaining), hit: true, style };
+
+  return { name: offListName(roster, remaining, style), hit: false, style };
 }

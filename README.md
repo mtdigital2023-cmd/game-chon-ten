@@ -1,8 +1,8 @@
 # Cào tên ở quán trà
 
-Đặt số tên muốn chọn, nhập họ tên mỗi người một dòng, rồi chọn nhanh **1**, **3**, **5** hoặc nhập số thẻ mỗi lượt. Game tự chạy qua cảnh quán trà, xé nhãn chai, đặt vé lên bàn, cào từng nhịp từ trái sang phải và công bố kết quả. Khi hết số vé của một lượt mà chưa đủ tên trúng, game chuyển sang lượt mới.
+Đặt số tên muốn chọn, nhập họ tên mỗi người một dòng, rồi chọn nhanh **1**, **3**, **5** hoặc nhập số thẻ mỗi lượt. Game tự chạy qua cảnh quán trà, xé nhãn chai, đặt vé lên bàn, cào từng nhịp, luân phiên bắt đầu từ họ, chữ giữa hoặc tên gọi và công bố kết quả. Khi hết số vé của một lượt mà chưa đủ tên trúng, game chuyển sang lượt mới.
 
-Trước mỗi tên trúng sẽ có ngẫu nhiên từ 0 đến 3 vé trượt mang tên ngoài danh sách. Khi đủ số tên, bảng xếp hạng hiện theo thứ tự trúng. Những người vừa trúng được loại khỏi lượt tiếp theo và có thể được khôi phục ngay trên bảng. Chọn lại số tên và số thẻ, rồi bấm **Cào tiếp**. Bấm Space để tạm dừng hoặc tiếp tục khi đang chiếu. Có nút toàn màn hình trên trình duyệt hỗ trợ và nút bật âm thanh. Mục **Quản lý ván** lưu các danh sách lớp đã đặt tên trên trình duyệt.
+Trước mỗi tên trúng sẽ có ngẫu nhiên từ 0 đến 3 vé trượt mang tên gần giống một người đang chờ cào, nhưng họ tên đầy đủ nằm ngoài danh sách. Khi đủ số tên, bảng xếp hạng hiện theo thứ tự trúng. Những người vừa trúng được loại khỏi lượt tiếp theo và có thể được khôi phục ngay trên bảng. Chọn lại số tên và số thẻ, rồi bấm **Cào tiếp**. Bấm Space để tạm dừng hoặc tiếp tục khi đang chiếu. Có nút toàn màn hình trên trình duyệt hỗ trợ và nút bật âm thanh. Mục **Quản lý ván** lưu các danh sách lớp đã đặt tên trên trình duyệt.
 
 ## Chạy trong môi trường phát triển
 
