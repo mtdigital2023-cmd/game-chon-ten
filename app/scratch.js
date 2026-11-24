@@ -22,11 +22,16 @@ export function applyFoil(canvas, reveal) {
   ctx.lineWidth = 25;
   let pointer = null;
   let last;
+  const frame = canvas.parentElement;
 
   function erase(event) {
     const bounds = canvas.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) * canvas.width / bounds.width;
-    const y = (event.clientY - bounds.top) * canvas.height / bounds.height;
+    const fractionX = (event.clientX - bounds.left) / bounds.width;
+    const fractionY = (event.clientY - bounds.top) / bounds.height;
+    const x = fractionX * canvas.width;
+    const y = fractionY * canvas.height;
+    frame.style.setProperty('--coin-x', `${Math.min(100, Math.max(0, fractionX * 100))}%`);
+    frame.style.setProperty('--coin-y', `${Math.min(100, Math.max(0, fractionY * 100))}%`);
     const from = last || { x: x + 0.1, y };
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
@@ -45,6 +50,7 @@ export function applyFoil(canvas, reveal) {
   function start(event) {
     if (pointer !== null || event.button !== 0) return;
     pointer = event.pointerId;
+    canvas.dataset.scratching = '';
     canvas.setPointerCapture(pointer);
     erase(event);
   }
@@ -52,6 +58,7 @@ export function applyFoil(canvas, reveal) {
     if (pointer === event.pointerId) erase(event);
   }
   function release() {
+    delete canvas.dataset.scratching;
     pointer = null;
     last = null;
   }

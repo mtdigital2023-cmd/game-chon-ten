@@ -15,17 +15,22 @@ function ScratchTicket({ ticket, index, onReveal }) {
   }, [reveal]);
 
   return (
-    <article className="ticket">
+    <article className="ticket" data-result={ticket.open ? (ticket.hit ? 'hit' : 'miss') : undefined}>
       <p className="ticket-title">Phiếu {index + 1}</p>
       <div className="scratch">
         <div className="ticket-result" aria-hidden={!ticket.open}>
           <strong>{ticket.name}</strong>
           {ticket.open && <span>{ticket.hit ? 'Đúng tên!' : 'Ngoài danh sách'}</span>}
         </div>
-        {!ticket.open && <canvas ref={canvas} width="320" height="96" aria-hidden="true" />}
+        {!ticket.open && (
+          <>
+            <canvas ref={canvas} width="320" height="96" aria-hidden="true" />
+            <i className="coin" aria-hidden="true" />
+          </>
+        )}
       </div>
       {!ticket.open && (
-        <button className="open-ticket" type="button" onClick={reveal}>Mở phiếu {index + 1}</button>
+        <button className="btn btn--secondary open-ticket" type="button" onClick={reveal}>Mở phiếu {index + 1}</button>
       )}
     </article>
   );
@@ -122,7 +127,9 @@ export default function Game() {
   }
 
   return (
-    <main className="layout">
+    <main className="layout hero" data-enter data-playing={Boolean(game)}>
+      <a className="skip" href="#panel-title">Đến phần chơi</a>
+      <div className="scene-art" data-visual aria-hidden="true" />
       <header className="scene">
         <div className="scene-title">
           <p className="eyebrow">Trò chơi gọi tên</p>
@@ -130,7 +137,7 @@ export default function Game() {
         </div>
       </header>
       <section className="panel" aria-labelledby="panel-title">
-        <h2 id="panel-title">{game ? `Phiếu trà đá · Lượt ${game.round}` : 'Thiết lập ván chơi'}</h2>
+        <h2 id="panel-title" tabIndex={-1}>{game ? `Phiếu trà đá · Lượt ${game.round}` : 'Thiết lập ván chơi'}</h2>
         <form onSubmit={startGame} hidden={Boolean(game)}>
           <label htmlFor="target">Số tên muốn chọn</label>
           <input id="target" name="target" ref={targetInput} type="number" min="1" step="1" defaultValue="1" required aria-describedby="target-hint" onChange={event => event.target.setCustomValidity('')} />
@@ -148,22 +155,22 @@ export default function Game() {
             <option value="2">2 thẻ</option>
             <option value="3">3 thẻ</option>
           </select>
-          <button className="primary" type="submit">Bắt đầu</button>
+          <button className="btn btn--primary" type="submit">Bắt đầu</button>
         </form>
         {game && (
           <>
             <p className="hint" id="instructions">Kéo chuột hoặc vuốt lên ô bạc để cào. Chỉ tên trong danh sách mới được tính.</p>
             <label id="progress" htmlFor="game-progress">Đã chọn {game.selected.length}/{game.goal} tên</label>
             <progress id="game-progress" value={game.selected.length} max={game.goal} />
-            <div id="cards" ref={ticketList} aria-describedby="instructions">
+            <div id="cards" key={game.round} ref={ticketList} aria-describedby="instructions">
               {game.tickets.map((ticket, index) => (
                 <ScratchTicket key={`${game.round}-${index}`} ticket={ticket} index={index} onReveal={revealTicket} />
               ))}
             </div>
             <p id="status" role="status">{game.status}</p>
             <div className="actions">
-              <button className="primary" ref={nextButton} type="button" disabled={game.tickets.some(ticket => !ticket.open) || game.selected.length === game.goal} onClick={nextRound}>Lượt tiếp theo</button>
-              <button ref={editButton} type="button" onClick={() => {
+              <button className="btn btn--primary" ref={nextButton} type="button" disabled={game.tickets.some(ticket => !ticket.open) || game.selected.length === game.goal} onClick={nextRound}>Lượt tiếp theo</button>
+              <button className="btn btn--secondary" ref={editButton} type="button" onClick={() => {
                 focusPending.current = true;
                 setGame(null);
               }}>Thiết lập lại</button>
