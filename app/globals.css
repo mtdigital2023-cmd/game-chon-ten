@@ -265,7 +265,7 @@ form .btn--primary { margin-top: 18px; width: 100%; }
 @keyframes turn-label { to { opacity: 0; } }
 
 .playing-ticket {
-  width: min(100%, 780px);
+  width: min(100%, 1120px);
   border: 2px solid #76432d;
   border-inline: 6px solid #a8552d;
   border-radius: 12px;
@@ -274,37 +274,39 @@ form .btn--primary { margin-top: 18px; width: 100%; }
   box-shadow: 0 16px 36px #0d2b20ad;
   animation: arrive 440ms var(--m-ease-enter) both;
 }
-.ticket-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font: 800 clamp(1.08rem, 2.6vw, 1.35rem)/1.25 var(--display); }
-.ticket-heading small { display: block; color: #694d36; font: 700 .8rem/1.2 system-ui, sans-serif; }
-.ticket-brand { order: 1; flex: 0 0 auto; width: clamp(68px, 9vw, 94px); padding: 5px 6px; border-radius: 4px; background: #803e2a; }
+.ticket-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font: 800 clamp(1.15rem, 2.8vw, 1.75rem)/1.25 var(--display); }
+.ticket-heading small { display: block; color: #694d36; font: 700 clamp(.8rem, 1.4vw, 1rem)/1.2 system-ui, sans-serif; }
+.ticket-brand { order: 1; flex: 0 0 auto; width: clamp(72px, 10vw, 124px); padding: 5px 6px; border-radius: 4px; background: #803e2a; }
 .ticket-brand img { display: block; width: 100%; aspect-ratio: 8 / 1; object-fit: cover; object-position: top; }
 .scratch-window {
   position: relative;
   display: grid;
   isolation: isolate;
-  min-height: 125px;
+  min-height: clamp(150px, 30vh, 300px);
   grid-template-columns: minmax(0, 1fr);
   border: 1px solid #a67451;
   border-radius: 8px;
   background: #fff7da;
   color: #613b2b;
 }
-.scratch-window > strong, .scratch-window > canvas { grid-area: 1 / 1; min-width: 0; border-radius: inherit; }
 .scratch-window > strong {
+  grid-area: 1 / 1;
+  min-width: 0;
+  border-radius: inherit;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   align-content: center;
   justify-content: center;
-  gap: 2px .27em;
-  padding: 12px clamp(14px, 3vw, 36px);
+  gap: 4px .3em;
+  padding: clamp(14px, 3vw, 36px) clamp(18px, 4vw, 56px);
   color: #233b46;
   overflow-wrap: anywhere;
   text-transform: uppercase;
-  font: 800 clamp(1.43rem, 4.5vw, 3.15rem)/1.08 var(--display);
+  font: 800 clamp(2.2rem, 7.6vw, 6rem)/1.08 var(--display);
 }
 .scratch-window > strong > span { min-width: 0; }
-.scratch-window canvas { z-index: 1; width: 100%; height: 100%; }
+.scratch-window canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; border-radius: inherit; }
 .scratch-window canvas[data-unavailable] {
   background: #c9d0cb;
 }
@@ -312,7 +314,7 @@ form .btn--primary { margin-top: 18px; width: 100%; }
   position: absolute;
   z-index: 2;
   pointer-events: none;
-  width: clamp(85px, 20vw, 212px);
+  width: clamp(110px, 24vw, 300px);
   aspect-ratio: 1;
   left: var(--coin-x, 0%);
   top: var(--coin-y, 15%);

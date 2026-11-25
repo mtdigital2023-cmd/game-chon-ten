@@ -89,14 +89,44 @@ function TearScene() {
   );
 }
 
+// Largest font that keeps the whole name on one line inside the scratch window.
+function fitName(strong) {
+  const style = getComputedStyle(strong);
+  const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+  const available = strong.clientWidth - padding;
+  strong.style.flexWrap = 'nowrap';
+  strong.style.fontSize = '100px';
+  // Centered flex content overflows both sides, so measure the words instead of scrollWidth.
+  const natural = strong.lastElementChild.getBoundingClientRect().right - strong.firstElementChild.getBoundingClientRect().left;
+  strong.style.flexWrap = '';
+  const fitted = Math.min(104, Math.max(30, 100 * available / natural * 0.97));
+  strong.style.fontSize = `${fitted}px`;
+}
+
 function ScratchTicket({ name, serial, style, paused, onFinish, onStroke }) {
   const canvas = useRef(null);
+  const nameBox = useRef(null);
   const controller = useRef(null);
   const finish = useRef(onFinish);
 
   useLayoutEffect(() => {
     finish.current = onFinish;
   }, [onFinish]);
+
+  useLayoutEffect(() => {
+    const strong = nameBox.current;
+    let width = 0;
+    function refit() {
+      if (strong.clientWidth === width) return;
+      width = strong.clientWidth;
+      fitName(strong);
+    }
+    refit();
+    const observer = new ResizeObserver(refit);
+    observer.observe(strong);
+    document.fonts?.ready.then(() => fitName(strong));
+    return () => observer.disconnect();
+  }, [name]);
 
   useLayoutEffect(() => {
     const scratch = animateScratch(canvas.current, style, () => finish.current(), onStroke);
@@ -116,10 +146,10 @@ function ScratchTicket({ name, serial, style, paused, onFinish, onStroke }) {
         <span>Vé cào gọi tên <small>Số {serial}</small></span>
       </div>
       <div className="scratch-window" aria-hidden="true">
-        <strong>
+        <strong ref={nameBox}>
           {name.split(' ').map((word, index) => <span key={index}>{word}</span>)}
         </strong>
-        <canvas ref={canvas} width={520} height={125} />
+        <canvas ref={canvas} />
         <i className="scratch-hand" />
       </div>
     </div>

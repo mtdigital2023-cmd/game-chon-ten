@@ -1,152 +1,290 @@
 const duration = 6600;
 const reducedDuration = 300;
+const maxPixelRatio = 2;
+const samplesPerStroke = 12;
 
-function orderBands(bands, style) {
-  if (style === 'given-first') return [...bands].reverse();
-  if (style === 'middle-first') {
-    const center = Math.floor((bands.length - 1) / 2);
-    return [...bands.slice(0, center + 1).reverse(), ...bands.slice(center + 1)];
-  }
-  return bands;
+function easeInOut(t) {
+  return 0.5 - Math.cos(Math.PI * t) / 2;
 }
 
-function measureBands(canvas, words, style) {
+function orderCells(cells, style) {
+  if (style === 'given-first') return [...cells].reverse();
+  if (style === 'middle-first') {
+    const center = Math.floor((cells.length - 1) / 2);
+    return [...cells.slice(0, center + 1).reverse(), ...cells.slice(center + 1)];
+  }
+  return cells;
+}
+
+// Split the whole foil into one cell per word, so scratching every cell clears every pixel
+// while a word stays hidden until its own turn.
+function measureCells(canvas, words) {
   const bounds = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / bounds.width;
-  const scaleY = canvas.height / bounds.height;
-
-  const bands = words.map((word, index) => {
+  const lines = [];
+  for (const [index, word] of words.entries()) {
     const box = word.getBoundingClientRect();
-    const left = Math.max(0, (box.left - bounds.left) * scaleX - 3);
-    const right = Math.min(canvas.width, (box.right - bounds.left) * scaleX + 3);
-    const top = Math.max(0, (box.top - bounds.top) * scaleY - 3);
-    const bottom = Math.min(canvas.height, (box.bottom - bounds.top) * scaleY + 3);
-    const reverse = style === 'given-first' ||
-      (style === 'middle-first' && index <= Math.floor((words.length - 1) / 2));
+    const item = {
+      index,
+      left: box.left - bounds.left,
+      right: box.right - bounds.left,
+      top: box.top - bounds.top,
+      bottom: box.bottom - bounds.top,
+    };
+    const middle = (item.top + item.bottom) / 2;
+    const line = lines.find(row => middle > row.top && middle < row.bottom);
+    if (line) {
+      line.items.push(item);
+      line.top = Math.min(line.top, item.top);
+      line.bottom = Math.max(line.bottom, item.bottom);
+    } else {
+      lines.push({ top: item.top, bottom: item.bottom, items: [item] });
+    }
+  }
 
-    return { left, right, top, bottom, start: reverse ? right : left, end: reverse ? left : right };
-  });
+  lines.sort((a, b) => a.top - b.top);
+  const cells = [];
+  for (const [row, line] of lines.entries()) {
+    const top = row ? (lines[row - 1].bottom + line.top) / 2 : 0;
+    const bottom = row < lines.length - 1 ? (line.bottom + lines[row + 1].top) / 2 : bounds.height;
+    line.items.sort((a, b) => a.left - b.left);
+    for (const [column, item] of line.items.entries()) {
+      const previous = line.items[column - 1];
+      const next = line.items[column + 1];
+      cells[item.index] = {
+        left: previous ? (previous.right + item.left) / 2 : 0,
+        right: next ? (item.right + next.left) / 2 : bounds.width,
+        top,
+        bottom,
+      };
+    }
+  }
+  return { width: bounds.width, height: bounds.height, cells };
+}
 
-  return orderBands(bands, style);
+function sameLayout(a, b) {
+  if (!a || Math.abs(a.width - b.width) > 0.5 || Math.abs(a.height - b.height) > 0.5) return false;
+  return a.cells.every((cell, index) => ['left', 'right', 'top', 'bottom']
+    .every(side => Math.abs(cell[side] - b.cells[index][side]) < 0.5));
+}
+
+// Back-and-forth coin strokes, slightly tilted and bowed like a hand, spaced so the
+// coin's width overlaps the previous stroke and leaves no foil behind.
+function buildPath(cell, reverse, radius) {
+  const insetX = Math.min(radius * 0.55, (cell.right - cell.left) / 2);
+  const insetY = Math.min(radius * 0.5, (cell.bottom - cell.top) / 2);
+  const from = reverse ? cell.right - insetX : cell.left + insetX;
+  const to = reverse ? cell.left + insetX : cell.right - insetX;
+  const top = cell.top + insetY;
+  const bottom = cell.bottom - insetY;
+  const count = Math.max(2, Math.ceil(Math.abs(to - from) / (radius * 1.1)) + 1);
+  const points = [];
+  const strokes = [];
+  let length = 0;
+
+  for (let stroke = 0; stroke < count; stroke++) {
+    const x = from + (to - from) * stroke / (count - 1);
+    const down = stroke % 2 === 0;
+    const start = length;
+    for (let sample = 0; sample <= samplesPerStroke; sample++) {
+      const t = sample / samplesPerStroke;
+      const point = {
+        x: x + (t - 0.5) * radius * 0.35 + Math.sin(t * Math.PI) * radius * 0.28 * (down ? 1 : -1),
+        y: down ? top + (bottom - top) * t : bottom - (bottom - top) * t,
+      };
+      const last = points.at(-1);
+      if (last) length += Math.hypot(point.x - last.x, point.y - last.y);
+      point.distance = length;
+      points.push(point);
+    }
+    strokes.push({ start, end: length });
+  }
+  return { points, strokes, length };
+}
+
+function pointAt(path, distance) {
+  const { points } = path;
+  if (distance <= 0) return points[0];
+  for (let index = 1; index < points.length; index++) {
+    const point = points[index];
+    if (point.distance >= distance) {
+      const previous = points[index - 1];
+      const span = point.distance - previous.distance || 1;
+      const fraction = (distance - previous.distance) / span;
+      return {
+        x: previous.x + (point.x - previous.x) * fraction,
+        y: previous.y + (point.y - previous.y) * fraction,
+        distance,
+      };
+    }
+  }
+  return points.at(-1);
 }
 
 function paintFoil(ctx, width, height) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
   const silver = ctx.createLinearGradient(0, 0, width, height);
   silver.addColorStop(0, '#9ba7a0');
   silver.addColorStop(0.28, '#ebefeb');
   silver.addColorStop(0.62, '#b2bdb6');
   silver.addColorStop(0.88, '#e0e6df');
   silver.addColorStop(1, '#aab5ab');
-  ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = silver;
   ctx.fillRect(0, 0, width, height);
-  ctx.strokeStyle = '#ffffff45';
 
+  ctx.strokeStyle = '#ffffff45';
+  ctx.lineWidth = 1;
   for (let x = -height; x < width; x += 9) {
     ctx.beginPath();
     ctx.moveTo(x, height);
     ctx.lineTo(x + height, 0);
     ctx.stroke();
   }
+
+  // Fine grain so the foil reads as metal rather than a flat fill.
+  const grains = Math.round(width * height / 90);
+  for (let index = 0; index < grains; index++) {
+    ctx.fillStyle = index % 2 ? '#ffffff38' : '#5f6f6630';
+    ctx.fillRect(Math.random() * width, Math.random() * height, 1.4, 1.4);
+  }
+
   ctx.fillStyle = '#42564d';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = 'bold 26px system-ui';
+  ctx.font = `800 ${Math.round(Math.min(height * 0.17, width * 0.06))}px system-ui, sans-serif`;
   ctx.fillText('TÊN BÍ MẬT', width / 2, height / 2);
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = '#000';
+  ctx.restore();
 }
 
-function clearBand(ctx, band) {
-  ctx?.clearRect(band.left, band.top, band.right - band.left, band.bottom - band.top);
-}
-
-function scratchBand(ctx, band, edge) {
-  if (!ctx || edge === band.start) return;
-
-  const ridges = [0, 2.5, -1, 1.5, -2, 0];
-  ctx.beginPath();
-  ctx.moveTo(band.start, band.top);
-  for (const [index, ridge] of ridges.entries()) {
-    const y = band.top + (band.bottom - band.top) * index / (ridges.length - 1);
-    const x = Math.min(band.right, Math.max(band.left, edge + ridge));
-    ctx.lineTo(x, y);
+function carve(ctx, step, from, to) {
+  if (!ctx || to <= from) return;
+  const { cell, path, radius } = step;
+  const trail = [pointAt(path, from)];
+  for (const point of path.points) {
+    if (point.distance > from && point.distance < to) trail.push(point);
   }
-  ctx.lineTo(band.start, band.bottom);
-  ctx.closePath();
-  ctx.fill();
+  const tip = pointAt(path, to);
+  trail.push(tip);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cell.left, cell.top, cell.right - cell.left, cell.bottom - cell.top);
+  ctx.clip();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(trail[0].x, trail[0].y);
+  for (const point of trail.slice(1)) ctx.lineTo(point.x, point.y);
+  // A thin, half-worn rim around the coin, then the coin's full bite.
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = radius * 2.3;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = radius * 2;
+  ctx.stroke();
+
+  // Flakes torn off at the coin's leading edge.
+  ctx.fillStyle = '#000';
+  for (let flake = 0; flake < 3; flake++) {
+    const angle = Math.random() * Math.PI * 2;
+    const reach = radius * (0.95 + Math.random() * 0.25);
+    ctx.beginPath();
+    ctx.arc(tip.x + Math.cos(angle) * reach, tip.y + Math.sin(angle) * reach, radius * (0.05 + Math.random() * 0.1), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
-function shortStrokes(fraction) {
-  if (fraction >= 1) return 1;
-  const progress = fraction * 3;
-  const stroke = Math.floor(progress);
-  return (stroke + Math.min((progress - stroke) / 0.8, 1)) / 3;
+function clearCell(ctx, cell) {
+  ctx?.clearRect(cell.left, cell.top, cell.right - cell.left, cell.bottom - cell.top);
 }
 
 export function animateScratch(canvas, style, finish, stroke) {
   const ctx = canvas.getContext('2d');
-  const { width, height } = canvas;
   const frame = canvas.parentElement;
   const words = [...frame.querySelectorAll('strong > span')];
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const beat = duration / words.length;
-  let bands;
+  let layout;
+  let plan;
   let elapsed = 0;
   let previousTime = null;
   let cleared = 0;
-  let lastSound = -1;
+  let drawnStep = -1;
+  let drawn = 0;
+  let lastSound = '';
   let animation;
   let complete = false;
 
-  function positionCoin(x, y) {
-    frame.style.setProperty('--coin-x', `${x / width * 100}%`);
-    frame.style.setProperty('--coin-y', `${y / height * 100}%`);
+  function positionCoin(point) {
+    frame.style.setProperty('--coin-x', `${point.x / layout.width * 100}%`);
+    frame.style.setProperty('--coin-y', `${point.y / layout.height * 100}%`);
     frame.dataset.scratching = '';
   }
 
   function render() {
-    const index = Math.min(Math.floor(elapsed / beat), bands.length - 1);
-    while (cleared < index) clearBand(ctx, bands[cleared++]);
+    const index = Math.min(Math.floor(elapsed / beat), plan.length - 1);
+    while (cleared < index) clearCell(ctx, plan[cleared++].cell);
+    if (drawnStep !== index) {
+      drawnStep = index;
+      drawn = 0;
+    }
 
-    const band = bands[index];
-    const centerY = (band.top + band.bottom) / 2;
+    const step = plan[index];
+    const { path } = step;
     const time = elapsed - index * beat;
     const travel = index ? Math.min(230, beat * 0.15) : 0;
     const hold = Math.min(540, beat * 0.24);
     if (time < travel) {
-      const previous = bands[index - 1];
-      const fraction = time / travel;
-      const previousY = (previous.top + previous.bottom) / 2;
-      positionCoin(previous.end + (band.start - previous.end) * fraction, previousY + (centerY - previousY) * fraction);
+      const from = plan[index - 1].path.points.at(-1);
+      const to = path.points[0];
+      const fraction = easeInOut(time / travel);
+      positionCoin({ x: from.x + (to.x - from.x) * fraction, y: from.y + (to.y - from.y) * fraction });
       return;
     }
 
-    if (lastSound !== index) {
+    const strokes = path.strokes;
+    const progress = Math.min(1, (time - travel) / (beat - travel - hold)) * strokes.length;
+    const current = Math.min(Math.floor(progress), strokes.length - 1);
+    const soundKey = `${index}:${current}`;
+    if (progress < strokes.length && lastSound !== soundKey) {
       stroke();
-      lastSound = index;
+      lastSound = soundKey;
     }
-    const progress = shortStrokes((time - travel) / (beat - travel - hold));
-    const edge = band.start + (band.end - band.start) * progress;
-    if (progress === 1) clearBand(ctx, band);
-    else scratchBand(ctx, band, edge);
-    const y = centerY + Math.sin(progress * Math.PI * 8) * (band.bottom - band.top) * 0.34;
-    positionCoin(edge, y);
+    const { start, end } = strokes[current];
+    const distance = progress >= strokes.length ? path.length : start + (end - start) * easeInOut(progress - current);
+    carve(ctx, step, drawn, distance);
+    drawn = Math.max(drawn, distance);
+    positionCoin(pointAt(path, distance));
   }
 
   function refreshLayout() {
-    const layout = measureBands(canvas, words, style);
-    if (bands && layout.every((band, index) =>
-      Math.abs(band.left - bands[index].left) < 0.5 &&
-      Math.abs(band.right - bands[index].right) < 0.5 &&
-      Math.abs(band.top - bands[index].top) < 0.5 &&
-      Math.abs(band.bottom - bands[index].bottom) < 0.5
-    )) return;
+    const next = measureCells(canvas, words);
+    if (sameLayout(layout, next)) return;
+    layout = next;
 
-    bands = layout;
+    const directions = layout.cells.map((cell, index) => ({
+      cell,
+      reverse: style === 'given-first' ||
+        (style === 'middle-first' && index <= Math.floor((words.length - 1) / 2)),
+    }));
+    plan = orderCells(directions, style).map(({ cell, reverse }) => {
+      const radius = Math.max(12, Math.min(48, (cell.bottom - cell.top) * 0.2));
+      return { cell, radius, path: buildPath(cell, reverse, radius) };
+    });
+
     cleared = 0;
-    if (ctx) paintFoil(ctx, width, height);
-    else canvas.dataset.unavailable = '';
+    drawnStep = -1;
+    if (!ctx) {
+      canvas.dataset.unavailable = '';
+      return;
+    }
+    const ratio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+    canvas.width = Math.max(1, Math.round(layout.width * ratio));
+    canvas.height = Math.max(1, Math.round(layout.height * ratio));
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    paintFoil(ctx, layout.width, layout.height);
     if (elapsed > 0 && !complete) render();
   }
 
@@ -161,7 +299,7 @@ export function animateScratch(canvas, style, finish, stroke) {
     previousTime = time;
 
     if (elapsed === duration) {
-      ctx?.clearRect(0, 0, width, height);
+      ctx?.clearRect(0, 0, layout.width, layout.height);
       complete = true;
       finish();
       return;
